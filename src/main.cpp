@@ -1,44 +1,51 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-
-// Remember to include ALL the necessary headers!
 #include <iostream>
-#include <boost/program_options.hpp>
+#include <fstream>
+#include <cstring>
 
-// By convention, C++ header files use the `.hpp` extension. `.h` is OK too.
-#include "arithmetic/arithmetic.hpp"
+struct Boot_sector {
+    uint16_t bytes_per_sector;
+    uint16_t sectors_per_cluster;
+    uint16_t reserved_sector_count;
+    uint16_t table_count;
+    uint16_t table_size_in_sectors;
+    uint16_t root_entry_count;
+    uint16_t signature;
+};
+
+int read_img(uint16_t *var, std::string &img, int offset, int bytes) {
+    memcpy(var, img.c_str() + offset, bytes);
+    return 0;
+}
 
 int main(int argc, char **argv) {
-    int variable_a, variable_b;
-
-    namespace po = boost::program_options;
-
-    po::options_description visible("Supported options");
-    visible.add_options()
-            ("help,h", "Print this help message.");
-
-    po::options_description hidden("Hidden options");
-    hidden.add_options()
-            ("a", po::value<int>(&variable_a)->default_value(0), "Variable A.")
-            ("b", po::value<int>(&variable_b)->default_value(0), "Variable B.");
-
-    po::positional_options_description p;
-    p.add("a", 1);
-    p.add("b", 1);
-
-    po::options_description all("All options");
-    all.add(visible).add(hidden);
-
-    po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(all).positional(p).run(), vm);
-    po::notify(vm);
-
-    if (vm.count("help")) {
-        std::cout << "Usage:\n  add [a] [b]\n" << visible << std::endl;
-        return EXIT_SUCCESS;
+    if (argc < 2) {
+        std::cerr << "No image provided." << std::endl;
+        return EXIT_FAILURE;
     }
 
-    int result = arithmetic::add(variable_a, variable_b);
-    std::cout << result << std::endl;
+    std::ifstream file (argv[1], std::ifstream::binary);
+    std::string img((std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>());
+
+    Boot_sector bs;
+
+
+    read_img(&bs.bytes_per_sector, img, 11, 2);
+    read_img(&bs.sectors_per_cluster, img, 13, 1);
+    read_img(&bs.reserved_sector_count, img, 14, 2);
+    read_img(&bs.table_count, img, 16, 1);
+    read_img(&bs.root_entry_count, img, 17, 2);
+    read_img(&bs.table_size_in_sectors, img, 22, 2);
+    read_img(&bs.signature, img, 510, 2);
+
+
+    std::cout << bs.bytes_per_sector << std::endl;
+    std::cout << bs.sectors_per_cluster << std::endl;
+    std::cout << bs.reserved_sector_count << std::endl;
+    std::cout << bs.table_count << std::endl;
+    std::cout << bs.root_entry_count << std::endl;
+    std::cout << bs.table_size_in_sectors << std::endl;
+    std::cout << bs.signature << std::endl;
+
     return EXIT_SUCCESS;
 }
