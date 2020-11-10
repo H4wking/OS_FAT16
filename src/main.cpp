@@ -12,7 +12,18 @@ struct Boot_sector {
     uint16_t signature;
 };
 
-int read_img(uint16_t *var, std::string &img, int offset, int bytes) {
+struct File {
+    char name_extension[11];
+    uint16_t size;
+//    uint16_t creation_time;
+//    uint16_t creation_date;
+    uint16_t modification_time;
+    uint16_t modification_date;
+    uint16_t attribute;
+    uint16_t first_cluster_address;
+};
+
+int read_img(void *var, std::string &img, int offset, int bytes) {
     memcpy(var, img.c_str() + offset, bytes);
     return 0;
 }
@@ -46,6 +57,32 @@ int main(int argc, char **argv) {
     std::cout << bs.root_entry_count << std::endl;
     std::cout << bs.table_size_in_sectors << std::endl;
     std::cout << bs.signature << std::endl;
+
+    int offset = bs.reserved_sector_count * bs.bytes_per_sector +
+                 bs.table_count * bs.table_size_in_sectors * bs.bytes_per_sector;
+
+    std::cout << offset << std::endl;
+
+    for (int i = 0; i < bs.root_entry_count; i++) {
+        File f{};
+
+        read_img(&f.name_extension, img, offset, 11);
+        read_img(&f.size, img, offset + 28, 4);
+//        read_img(&f.creation_time, img, offset + 14, 2);
+//        read_img(&f.creation_date, img, offset + 16, 2);
+        read_img(&f.modification_time, img, offset + 22, 2);
+        read_img(&f.modification_date, img, offset + 24, 2);
+        read_img(&f.attribute, img, offset + 11, 1);
+        read_img(&f.first_cluster_address, img, offset + 26, 2);
+
+
+
+
+        std::cout << f.name_extension << "  " << f.size << "  " << f.modification_time << "  " << f.modification_date
+        << " " << f.attribute << " " << f.first_cluster_address << std::endl;
+
+        offset += 32;
+    }
 
     return EXIT_SUCCESS;
 }
